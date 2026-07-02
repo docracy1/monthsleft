@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runway Calculator — How long until zero?</title>
+    <script type="module" crossorigin src="/assets/index-DZ8DNzyg.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <div id="claude-connector-widget">
+      <style>
+        html, body {
+          background: #0A0A0A !important;
+          margin: 0;
+          padding: 0;
+        }
+        #claude-connector-widget {
+          max-width: 1040px;
+          margin: 0 auto 48px;
+          padding: 0 24px;
+          font-family: -apple-system, 'Inter', sans-serif;
+        }
+        #claude-connector-widget .cc-card {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #141414;
+          border: 1px solid #262626;
+          border-radius: 10px;
+          padding: 20px;
+        }
+        #claude-connector-widget .cc-label {
+          font-size: 12px;
+          font-weight: 500;
+          color: #fff;
+          margin-bottom: 6px;
+        }
+        #claude-connector-widget .cc-desc {
+          font-size: 12px;
+          color: #8A8A8A;
+          line-height: 1.5;
+          margin-bottom: 4px;
+        }
+        #claude-connector-widget .cc-step {
+          display: flex;
+          gap: 12px;
+          margin-top: 16px;
+        }
+        #claude-connector-widget .cc-num {
+          flex-shrink: 0;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #262626;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        #claude-connector-widget .cc-body {
+          flex: 1;
+          min-width: 0;
+        }
+        #claude-connector-widget .cc-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: #fff;
+          margin-bottom: 4px;
+        }
+        #claude-connector-widget .cc-text {
+          font-size: 12px;
+          color: #8A8A8A;
+          line-height: 1.5;
+          margin-bottom: 8px;
+        }
+        #claude-connector-widget .cc-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          background: #0A0A0A;
+          border: 1px solid #262626;
+          border-radius: 8px;
+          padding: 8px 10px;
+        }
+        #claude-connector-widget .cc-row code {
+          flex: 1;
+          font-size: 12px;
+          color: #fff;
+          white-space: normal;
+          word-break: break-word;
+          line-height: 1.5;
+          font-family: 'Space Grotesk', monospace;
+        }
+        #claude-connector-widget .cc-row button {
+          border: 1px solid #262626;
+          background: transparent;
+          color: #8A8A8A;
+          font-size: 12px;
+          padding: 5px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        #claude-connector-widget .cc-row button:hover {
+          border-color: #FF8A3D;
+          color: #fff;
+        }
+        #claude-connector-widget .cc-toggle {
+          display: block;
+          margin: 0 auto;
+          background: #141414;
+          border: 1px solid #262626;
+          border-radius: 10px;
+          color: #fff;
+          font-family: -apple-system, 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          padding: 12px 20px;
+          cursor: pointer;
+        }
+        #claude-connector-widget .cc-toggle:hover {
+          border-color: #FF8A3D;
+        }
+        #claude-connector-widget .cc-panel {
+          display: none;
+          margin-top: 12px;
+        }
+        #claude-connector-widget .cc-panel.open {
+          display: block;
+        }
+        #claude-connector-widget .cc-ask-btn {
+          width: 100%;
+          margin-top: 16px;
+          padding: 12px;
+          background: #0A0A0A;
+          border: 1px solid #262626;
+          border-radius: 10px;
+          color: #fff;
+          font-family: -apple-system, 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+        #claude-connector-widget .cc-ask-btn:hover {
+          border-color: #FF8A3D;
+        }
+        #claude-connector-widget .cc-ask-hint {
+          text-align: center;
+          font-size: 12px;
+          color: #8A8A8A;
+          margin-top: 8px;
+        }
+      </style>
+
+      <button type="button" class="cc-toggle" id="cc-toggle-btn">Connect this to your Claude</button>
+
+      <div class="cc-panel" id="cc-panel"></div>
+    </div>
+
+    <script>
+      (function () {
+        var connectorUrl = window.location.origin + '/.netlify/functions/mcp';
+        var examplePrompt = 'use monthsleft to model my SaaS runway: €50k cash, €3k MRR, €5k burn, 5% growth, 2% churn';
+
+        var panel = document.getElementById('cc-panel');
+        panel.innerHTML =
+          '<div class="cc-card">' +
+            '<div class="cc-label">Connect this to your Claude</div>' +
+            '<div class="cc-desc">Your Claude can model SaaS runway with MRR growth and churn — plus breakeven and burn multiple — anytime.</div>' +
+            '<div class="cc-step"><div class="cc-num">1</div><div class="cc-body">' +
+              '<div class="cc-title">Copy this URL</div>' +
+              '<div class="cc-row"><code id="cc-connector-url">' + connectorUrl + '</code>' +
+              '<button type="button" class="cc-copy-url" aria-label="Copy connector URL">copy</button></div>' +
+            '</div></div>' +
+            '<div class="cc-step"><div class="cc-num">2</div><div class="cc-body">' +
+              '<div class="cc-title">Add it as a custom connector</div>' +
+              '<div class="cc-text">In Claude, go to <b>Settings → Connectors → Add custom connector</b>, paste the URL, and connect. No login or API key needed.</div>' +
+            '</div></div>' +
+            '<div class="cc-step"><div class="cc-num">3</div><div class="cc-body">' +
+              '<div class="cc-title">Say "monthsleft" in your question</div>' +
+              '<div class="cc-text">Claude sometimes does the math itself instead of calling the tool. Naming it makes sure it uses the live model, not guesswork.</div>' +
+              '<div class="cc-row"><code class="cc-example">' + examplePrompt + '</code>' +
+              '<button type="button" class="cc-copy-prompt" aria-label="Copy example prompt">copy</button></div>' +
+            '</div></div>' +
+            '<button type="button" class="cc-ask-btn" id="cc-ask-btn">Ask your Claude what to cut</button>' +
+            '<div class="cc-ask-hint" id="cc-ask-hint">Copies a prompt with your numbers, then opens Claude — paste it in.</div>' +
+          '</div>';
+
+        var toggleBtn = document.getElementById('cc-toggle-btn');
+        toggleBtn.addEventListener('click', function () {
+          panel.classList.toggle('open');
+          toggleBtn.textContent = panel.classList.contains('open')
+            ? 'Hide Claude connector'
+            : 'Connect this to your Claude';
+        });
+
+        function copyText(btn, text) {
+          navigator.clipboard.writeText(text).then(function () {
+            var original = btn.textContent;
+            btn.textContent = 'copied';
+            setTimeout(function () { btn.textContent = original; }, 2000);
+          }).catch(function () {
+            btn.textContent = 'select & copy';
+          });
+        }
+
+        panel.addEventListener('click', function (e) {
+          if (e.target.classList.contains('cc-copy-url')) {
+            copyText(e.target, connectorUrl);
+          }
+          if (e.target.classList.contains('cc-copy-prompt')) {
+            copyText(e.target, examplePrompt);
+          }
+        });
+
+        function readLiveInputs() {
+          var inputs = Array.from(document.querySelectorAll('#root input[type="number"]'));
+          if (inputs.length < 5) return null;
+          return {
+            cash: parseFloat(inputs[0].value) || 0,
+            mrr: parseFloat(inputs[1].value) || 0,
+            burn: parseFloat(inputs[2].value) || 0,
+            growth: parseFloat(inputs[3].value) || 0,
+            churn: parseFloat(inputs[4].value) || 0,
+          };
+        }
+
+        panel.addEventListener('click', function (e) {
+          if (e.target.id !== 'cc-ask-btn') return;
+          var askBtn = e.target;
+          var askHint = document.getElementById('cc-ask-hint');
+          var live = readLiveInputs();
+
+          var prompt;
+          if (live) {
+            prompt = 'I have €' + live.cash.toLocaleString() + ' in the bank, €' + live.mrr.toLocaleString() +
+              ' MRR, €' + live.burn.toLocaleString() + '/month burn, ' + live.growth + '% monthly MRR growth, and ' +
+              live.churn + '% monthly churn. Model my SaaS runway accounting for growth and churn compounding, ' +
+              'and give me 3 short, concrete moves to extend runway or reach breakeven sooner. Keep it under 100 words, no preamble.';
+          } else {
+            prompt = 'Model my SaaS runway accounting for MRR growth and churn compounding, and give me 3 short, ' +
+              'concrete moves to extend runway. Keep it under 100 words, no preamble.';
+          }
+
+          navigator.clipboard.writeText(prompt).then(function () {
+            askBtn.textContent = 'Copied — opening Claude…';
+            askHint.textContent = 'Paste it into the chat (Cmd/Ctrl+V).';
+          }).catch(function () {
+            askBtn.textContent = 'Opening Claude…';
+            askHint.textContent = 'Copy failed — paste this manually: ' + prompt;
+          });
+
+          window.open('https://claude.ai/new', '_blank');
+
+          setTimeout(function () {
+            askBtn.textContent = 'Ask your Claude what to cut';
+          }, 3000);
+        });
+      })();
+    </script>
+  </body>
+</html>
