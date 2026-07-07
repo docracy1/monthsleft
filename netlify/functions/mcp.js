@@ -7,6 +7,26 @@
 //
 // Connector URL to give users: https://<your-site>/.netlify/functions/mcp
 
+const { getStore } = require('@netlify/blobs');
+
+// Fire-and-forget call tracking via Netlify Blobs (free, zero extra infra).
+// Never throws — a stats failure must never break an actual tool call.
+async function trackCall(toolName) {
+  try {
+    const store = getStore('stats');
+    const day = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const keys = ['total', `tool:${toolName}`, `day:${day}`, `day:${day}:${toolName}`];
+    await Promise.all(
+      keys.map(async (k) => {
+        const cur = await store.get(k, { type: 'text' });
+        await store.set(k, String((parseInt(cur, 10) || 0) + 1));
+      })
+    );
+  } catch (e) {
+    console.error('trackCall failed:', e.message);
+  }
+}
+
 const TOOLS = [
   {
     name: 'calculate_saas_runway',
@@ -219,6 +239,7 @@ exports.handler = async (event) => {
           return respondError(-32602, `Unknown tool: ${toolName}`);
         }
         const text = fn(args);
+        await trackCall(toolName);
         return respond({ content: [{ type: 'text', text }], isError: false });
       }
 

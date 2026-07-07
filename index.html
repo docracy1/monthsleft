@@ -262,5 +262,141 @@
         });
       })();
     </script>
+    <div id="claude-contact-widget">
+      <style>
+        #claude-contact-widget {
+          max-width: 600px;
+          margin: 16px auto 48px;
+          padding: 0 24px;
+          font-family: -apple-system, 'Inter', sans-serif;
+        }
+        #claude-contact-widget .contact-card {
+          background: #141414;
+          border: 1px solid #262626;
+          border-radius: 10px;
+          padding: 20px;
+        }
+        #claude-contact-widget .contact-label {
+          font-size: 12px;
+          font-weight: 500;
+          color: #fff;
+          margin-bottom: 6px;
+        }
+        #claude-contact-widget .contact-desc {
+          font-size: 12px;
+          color: #8A8A8A;
+          line-height: 1.5;
+          margin-bottom: 12px;
+        }
+        #claude-contact-widget input[type="email"],
+        #claude-contact-widget textarea {
+          width: 100%;
+          box-sizing: border-box;
+          background: #0A0A0A;
+          border: 1px solid #262626;
+          border-radius: 8px;
+          padding: 10px 12px;
+          color: #fff;
+          font-family: -apple-system, 'Inter', sans-serif;
+          font-size: 13px;
+          margin-bottom: 8px;
+          resize: vertical;
+        }
+        #claude-contact-widget textarea {
+          min-height: 72px;
+        }
+        #claude-contact-widget input[type="email"]:focus,
+        #claude-contact-widget textarea:focus {
+          outline: none;
+          border-color: #FF8A3D;
+        }
+        #claude-contact-widget button {
+          width: 100%;
+          padding: 11px;
+          background: #FF8A3D;
+          border: none;
+          border-radius: 8px;
+          color: #0A0A0A;
+          font-family: -apple-system, 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        #claude-contact-widget button:hover {
+          opacity: 0.9;
+        }
+        #claude-contact-widget button:disabled {
+          opacity: 0.5;
+          cursor: default;
+        }
+        #claude-contact-widget .contact-status {
+          margin-top: 8px;
+          font-size: 12px;
+          color: #8A8A8A;
+          text-align: center;
+        }
+        #claude-contact-widget .contact-status.success {
+          color: #22C88A;
+        }
+        #claude-contact-widget .contact-status.error {
+          color: #F0524A;
+        }
+      </style>
+
+      <div class="contact-card">
+        <div class="contact-label">Questions, bugs, feedback?</div>
+        <div class="contact-desc">Send it straight to me — no account needed.</div>
+        <form id="cw-contact-form">
+          <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+          <input type="email" name="email" placeholder="you@email.com" required>
+          <textarea name="message" placeholder="What's on your mind" required></textarea>
+          <button type="submit" id="cw-contact-submit">Send</button>
+        </form>
+        <div class="contact-status" id="cw-contact-status"></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var form = document.getElementById('cw-contact-form');
+        var status = document.getElementById('cw-contact-status');
+        var submitBtn = document.getElementById('cw-contact-submit');
+
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Sending…';
+          status.textContent = '';
+          status.className = 'contact-status';
+
+          var formData = new FormData(form);
+          formData.append('access_key', 'YOUR_WEB3FORMS_ACCESS_KEY');
+          formData.append('subject', 'New message from monthsleft');
+          formData.append('from_name', 'monthsleft contact form');
+
+          try {
+            var res = await fetch('https://api.web3forms.com/submit', {
+              method: 'POST',
+              headers: { Accept: 'application/json' },
+              body: formData,
+            });
+            var data = await res.json();
+            if (data.success) {
+              status.textContent = 'Sent — thanks, I\'ll get back to you.';
+              status.className = 'contact-status success';
+              form.reset();
+            } else {
+              throw new Error(data.message || 'Send failed');
+            }
+          } catch (err) {
+            status.textContent = 'Something went wrong — try again in a bit.';
+            status.className = 'contact-status error';
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send';
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
