@@ -9,6 +9,40 @@
   <body>
     <div id="root"></div>
 
+    <script>
+      (function () {
+        var vid = localStorage.getItem('vid');
+        if (!vid) {
+          vid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+          localStorage.setItem('vid', vid);
+        }
+
+        function send(payload) {
+          var url = '/.netlify/functions/track';
+          var body = JSON.stringify(payload);
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+          } else {
+            fetch(url, { method: 'POST', body: body, keepalive: true }).catch(function () {});
+          }
+        }
+
+        send({ visitor_id: vid });
+
+        var start = Date.now();
+        var sent = false;
+        function sendDuration() {
+          if (sent) return;
+          sent = true;
+          send({ type: 'duration', visitor_id: vid, ms: Date.now() - start });
+        }
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'hidden') sendDuration();
+        });
+        window.addEventListener('pagehide', sendDuration);
+      })();
+    </script>
+
     <div id="claude-connector-widget">
       <style>
         html, body {
@@ -156,7 +190,7 @@
         }
       </style>
 
-      <button type="button" class="cc-toggle" id="cc-toggle-btn">Connect this to your Claude</button>
+      <button type="button" class="cc-toggle" id="cc-toggle-btn">Connect this to your AI assistant</button>
 
       <div class="cc-panel" id="cc-panel"></div>
     </div>
@@ -169,8 +203,8 @@
         var panel = document.getElementById('cc-panel');
         panel.innerHTML =
           '<div class="cc-card">' +
-            '<div class="cc-label">Connect this to your Claude</div>' +
-            '<div class="cc-desc">Your Claude can model SaaS runway with MRR growth and churn — plus breakeven and burn multiple — anytime.</div>' +
+            '<div class="cc-label">Connect this to your AI assistant</div>' +
+            '<div class="cc-desc">Works as an MCP connector in Claude, ChatGPT, Grok, and Perplexity. Model SaaS runway with MRR growth and churn — plus breakeven and burn multiple — anytime.</div>' +
             '<div class="cc-step"><div class="cc-num">1</div><div class="cc-body">' +
               '<div class="cc-title">Copy this URL</div>' +
               '<div class="cc-row"><code id="cc-connector-url">' + connectorUrl + '</code>' +
@@ -178,11 +212,11 @@
             '</div></div>' +
             '<div class="cc-step"><div class="cc-num">2</div><div class="cc-body">' +
               '<div class="cc-title">Add it as a custom connector</div>' +
-              '<div class="cc-text">In Claude, go to <b>Settings → Connectors → Add custom connector</b>, paste the URL, and connect. No login or API key needed.</div>' +
+              '<div class="cc-text">In Claude: <b>Settings → Connectors → Add custom connector</b>. In ChatGPT: <b>Settings → Connectors → Add</b>. In Grok or Perplexity, look for "Connectors" or "Tools" in settings. Paste the URL — no login or API key needed.</div>' +
             '</div></div>' +
             '<div class="cc-step"><div class="cc-num">3</div><div class="cc-body">' +
               '<div class="cc-title">Say "monthsleft" in your question</div>' +
-              '<div class="cc-text">Claude sometimes does the math itself instead of calling the tool. Naming it makes sure it uses the live model, not guesswork.</div>' +
+              '<div class="cc-text">Some assistants do the math themselves instead of calling the tool. Naming it makes sure it uses the live model, not guesswork.</div>' +
               '<div class="cc-row"><code class="cc-example">' + examplePrompt + '</code>' +
               '<button type="button" class="cc-copy-prompt" aria-label="Copy example prompt">copy</button></div>' +
             '</div></div>' +
@@ -194,8 +228,8 @@
         toggleBtn.addEventListener('click', function () {
           panel.classList.toggle('open');
           toggleBtn.textContent = panel.classList.contains('open')
-            ? 'Hide Claude connector'
-            : 'Connect this to your Claude';
+            ? 'Hide connector'
+            : 'Connect this to your AI assistant';
         });
 
         function copyText(btn, text) {
@@ -370,7 +404,7 @@
           status.className = 'contact-status';
 
           var formData = new FormData(form);
-          formData.append('access_key', 'YOUR_WEB3FORMS_ACCESS_KEY');
+          formData.append('access_key', 'e7af44eb-85cc-4cc3-bcd2-b8258932098d');
           formData.append('subject', 'New message from monthsleft');
           formData.append('from_name', 'monthsleft contact form');
 

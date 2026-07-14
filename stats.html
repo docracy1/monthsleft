@@ -59,6 +59,17 @@
   .row.total .val {
     color: var(--accent);
   }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin: 24px 0 8px;
+  }
+  .section-title:first-child {
+    margin-top: 0;
+  }
   .empty, .error {
     color: var(--ink-soft);
     font-size: 13px;
@@ -100,15 +111,87 @@
 
   function render(data) {
     var results = document.getElementById('results');
-    var entries = Object.entries(data).sort((a, b) => a[0].localeCompare(b[0]));
+    var entries = Object.entries(data);
     if (entries.length === 0) {
-      results.innerHTML = '<div class="empty">No calls tracked yet.</div>';
+      results.innerHTML = '<div class="empty">No data tracked yet.</div>';
       return;
     }
-    results.innerHTML = entries.map(function (e) {
-      var isTotal = e[0] === 'total';
-      return '<div class="row' + (isTotal ? ' total' : '') + '"><span class="key">' + e[0] + '</span><span class="val">' + e[1] + '</span></div>';
-    }).join('');
+
+    var visits = { total: 0, days: [], countries: [] };
+    var tools = { total: 0, byTool: [], byDay: [] };
+    var visitors = { unique: 0, returning: 0 };
+    var duration = { totalMs: 0, count: 0, byDay: {} };
+
+    entries.forEach(function (e) {
+      var k = e[0], v = e[1];
+      if (k === 'visits:total') visits.total = v;
+      else if (k.startsWith('visits:day:')) visits.days.push([k.replace('visits:day:', ''), v]);
+      else if (k.startsWith('visits:country:')) visits.countries.push([k.replace('visits:country:', ''), v]);
+      else if (k === 'total') tools.total = v;
+      else if (k.startsWith('tool:')) tools.byTool.push([k.replace('tool:', ''), v]);
+      else if (/^day:\d{4}-\d{2}-\d{2}$/.test(k)) tools.byDay.push([k.replace('day:', ''), v]);
+      else if (k === 'visitors:unique') visitors.unique = v;
+      else if (k === 'visitors:returning') visitors.returning = v;
+      else if (k === 'duration:total_ms') duration.totalMs = v;
+      else if (k === 'duration:count') duration.count = v;
+      else if (/^duration:day:\d{4}-\d{2}-\d{2}:total_ms$/.test(k)) {
+        var d1 = k.match(/duration:day:(\d{4}-\d{2}-\d{2}):total_ms/)[1];
+        duration.byDay[d1] = duration.byDay[d1] || {};
+        duration.byDay[d1].ms = v;
+      }
+      else if (/^duration:day:\d{4}-\d{2}-\d{2}:count$/.test(k)) {
+        var d2 = k.match(/duration:day:(\d{4}-\d{2}-\d{2}):count/)[1];
+        duration.byDay[d2] = duration.byDay[d2] || {};
+        duration.byDay[d2].count = v;
+      }
+      // 'visitor:<id>' rows are raw per-visitor markers, not shown here
+    });
+
+    visits.days.sort(function (a, b) { return b[0].localeCompare(a[0]); });
+    tools.byDay.sort(function (a, b) { return b[0].localeCompare(a[0]); });
+    visits.countries.sort(function (a, b) { return b[1] - a[1]; });
+    tools.byTool.sort(function (a, b) { return b[1] - a[1]; });
+
+    function fmtDuration(ms) {
+      var s = Math.round(ms / 1000);
+      var m = Math.floor(s / 60);
+      s = s % 60;
+      return m > 0 ? (m + 'm ' + s + 's') : (s + 's');
+    }
+
+    function section(title, rows, totalLabel, totalVal) {
+      if (rows.length === 0 && !totalVal) return '';
+      var html = '<div class="section-title">' + title + '</div>';
+      html += '<div class="row total"><span class="key">' + totalLabel + '</span><span class="val">' + totalVal + '</span></div>';
+      rows.forEach(function (r) {
+        html += '<div class="row"><span class="key">' + r[0] + '</span><span class="val">' + r[1] + '</span></div>';
+      });
+      return html;
+    }
+
+    var html = '';
+
+    var visitorRows = [];
+    if (visitors.unique || visitors.returning) {
+      visitorRows.push(['first-time', visitors.unique]);
+      visitorRows.push(['returning', visitors.returning]);
+    }
+    html += section('Visitors — new vs. returning', visitorRows, 'total tracked visits', visitors.unique + visitors.returning);
+
+    var avgOverall = duration.count > 0 ? fmtDuration(duration.totalMs / duration.count) : '—';
+    var durationDayRows = Object.keys(duration.byDay).sort(function (a, b) { return b.localeCompare(a); }).map(function (d) {
+      var rec = duration.byDay[d];
+      var avg = (rec.count > 0) ? fmtDuration(rec.ms / rec.count) : '—';
+      return [d, avg];
+    });
+    html += section('Avg. time on site — by day', durationDayRows, 'overall average', avgOverall);
+
+    html += section('Site visits — by country', visits.countries, 'total visits', visits.total);
+    html += section('Site visits — by day', visits.days, 'total visits', visits.total);
+    html += section('MCP tool calls — by tool', tools.byTool, 'total calls', tools.total);
+    html += section('MCP tool calls — by day', tools.byDay, 'total calls', tools.total);
+
+    results.innerHTML = html || '<div class="empty">No data tracked yet.</div>';
   }
 
   function load(key) {
